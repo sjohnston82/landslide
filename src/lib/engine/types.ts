@@ -49,7 +49,7 @@ export type GameState = {
   politicsDiscard: string[];
 
   currentTurnPlayerId: string;
-  currentPhase: GamePhase;
+  phaseStack: GamePhase[];
 };
 
 export type GamePhase =
