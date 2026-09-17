@@ -1,55 +1,83 @@
+export type PlayerId = string & { readonly __brand: "PlayerId" };
+export type StateCardId = string & { readonly __brand: "StateCardId" };
+export type VoteCardId = string & { readonly __brand: "VoteCardId" };
+export type PoliticsCardId = string & { readonly __brand: "PoliticsCardId" };
+
+export function toPlayerId(id: string): PlayerId {
+  return id as PlayerId;
+}
+export function toStateCardId(id: string): StateCardId {
+  return id as StateCardId;
+}
+export function toVoteCardId(id: string): VoteCardId {
+  return id as VoteCardId;
+}
+export function toPoliticsCardId(id: string): PoliticsCardId {
+  return id as PoliticsCardId;
+}
+
 export type Region = "MIDWEST" | "WEST" | "SOUTH" | "EAST";
 
 export type Player = {
-  id: string;
+  id: PlayerId;
   name: string;
   region: Region;
-  homeState: string;
+  homeState: StateCardId;
   boardPosition: number;
-  voteHand: string[];
-  politicsHand: string[];
-  wonStates: string[];
+  voteHand: VoteCardId[];
+  politicsHand: PoliticsCardId[];
+  wonStates: StateCardId[];
 };
 
 export type VoteCard = {
-  id: string;
+  id: VoteCardId;
   value: number;
 };
 
 export type StateCard = {
-  id: string;
+  id: StateCardId;
   name: string;
   electoralVotes: number;
 };
 
 export type PoliticsEffect =
   | { type: "STEAL_CARD" }
-  | { type: "GAMBLE"; stake: string }
+  | { type: "GAMBLE"; stake: StateCardId }
   | { type: "FLY_ANYWHERE" }
   | { type: "STOP" }
   | { type: "EXTRA_TURN" }
-  | { type: "DEBATE"; opponentId: string };
+  | { type: "DEBATE"; opponentId: PlayerId };
 
 export type PoliticsCard = {
-  id: string;
+  id: PoliticsCardId;
   effect: PoliticsEffect;
 };
 
 export type GameState = {
   players: Player[];
 
-  stateCardsById: Record<string, StateCard>;
+  stateCardsById: Record<StateCardId, StateCard>;
 
-  voteCardsById: Record<string, VoteCard>;
-  voteDeck: string[];
-  voteDiscard: string[];
+  voteCardsById: Record<VoteCardId, VoteCard>;
+  voteDeck: VoteCardId[];
+  voteDiscard: VoteCardId[];
 
-  politicsCardsById: Record<string, PoliticsCard>;
-  politicsDeck: string[];
-  politicsDiscard: string[];
+  politicsCardsById: Record<PoliticsCardId, PoliticsCard>;
+  politicsDeck: PoliticsCardId[];
+  politicsDiscard: PoliticsCardId[];
 
-  currentTurnPlayerId: string;
+  currentTurnPlayerId: PlayerId;
+
   phaseStack: GamePhase[];
+
+  currentAuction: AuctionState | null;
+};
+
+export type AuctionState = {
+  stateCardId: StateCardId;
+  highestBid: number;
+  highestBidderId: PlayerId | null;
+  activeBidderIds: PlayerId[];
 };
 
 export type GamePhase =

@@ -3,7 +3,7 @@ import { getCurrentPhase, pushPhase, popPhase, replacePhase } from "./phase";
 import type { GameState } from "./types";
 
 describe("getCurrentPhase", () => {
-  it("return the last item in the stack", () => {
+  it("returns the last item in the stack", () => {
     const state = {
       phaseStack: ["TURN_START", "AWAITING_ROLL", "MOVING"],
     } as GameState;
