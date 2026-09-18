@@ -38,9 +38,7 @@ function handleRollDie(
     p.id === updatedPlayer.id ? updatedPlayer : p
   );
 
-  replacePhase(state, "RESOLVING_SPACE");
-
-  return { ...state, players: updatedPlayers };
+  return replacePhase({ ...state, players: updatedPlayers }, "RESOLVING_SPACE");
 }
 
 export function applyAction(state: GameState, action: GameAction): GameState {
