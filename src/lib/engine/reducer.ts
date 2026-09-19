@@ -6,15 +6,19 @@ import type { GameAction } from "./actions";
 
 const BOARD_SIZE = 40; // placeholder — confirm actual space count later
 
-function handleRollDie(
+export function rollDie(): number {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+export function handleRollDie(
   state: GameState,
-  action: Extract<GameAction, { type: "ROLL_DIE" }>
+  action: Extract<GameAction, { type: "ROLL_DIE" }>,
+  roll: number = rollDie()
 ): GameState {
   if (getCurrentPhase(state) !== "AWAITING_ROLL") {
     throw new Error("Cannot roll die outside of AWAITING_ROLL phase");
   }
 
-  const dieRoll = Math.floor(Math.random() * 6) + 1;
 
   const rollingPlayer = state.players.find(
     (p) => p.id === state.currentTurnPlayerId
@@ -30,7 +34,7 @@ function handleRollDie(
     );
   }
 
-  const newPosition = (rollingPlayer.boardPosition + dieRoll) % BOARD_SIZE;
+  const newPosition = (rollingPlayer.boardPosition + roll) % BOARD_SIZE;
 
   const updatedPlayer = { ...rollingPlayer, boardPosition: newPosition };
 
@@ -45,6 +49,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "ROLL_DIE":
       return handleRollDie(state, action);
-    // other cases come later
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
   }
 }
