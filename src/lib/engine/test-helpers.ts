@@ -1,4 +1,4 @@
-import type { GameState, Player } from "./types";
+import type { AuctionState, GameState, Player } from "./types";
 import { toPlayerId, toStateCardId } from "./types";
 
 export function createTestPlayer(overrides: Partial<Player> = {}): Player {
@@ -36,4 +36,28 @@ export function createTestState(overrides: Partial<GameState> = {}): GameState {
     phaseStack: ["AWAITING_ROLL"],
     ...overrides,
   };
+}
+
+
+
+export function createTestAuctionState(
+  overrides: Partial<AuctionState> = {}
+): AuctionState {
+  return {
+    stateCardId: toStateCardId("NY"),
+    highestBid: 100,
+    highestBidderId: null,
+    activeBidderIds: [toPlayerId("p1"), toPlayerId("p2")],
+    ...overrides,
+  };
+}
+
+export function createTestAuctionGameState(
+  overrides: Partial<GameState> = {}
+): GameState {
+  return createTestState({
+    phaseStack: ["AUCTION"],
+    currentAuction: createTestAuctionState(),
+    ...overrides,
+  });
 }
