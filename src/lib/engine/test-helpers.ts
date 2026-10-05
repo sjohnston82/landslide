@@ -1,3 +1,4 @@
+// src/lib/engine/test-helpers.ts
 import type { AuctionState, GameState, Player } from "./types";
 import { toPlayerId, toStateCardId } from "./types";
 
@@ -38,16 +39,19 @@ export function createTestState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
-
-
+// Default auction: a STATE auction where p1 landed on the space (seller)
+// and bids first. Nobody has bid yet.
 export function createTestAuctionState(
   overrides: Partial<AuctionState> = {}
 ): AuctionState {
   return {
-    stateCardId: toStateCardId("NY"),
-    highestBid: 100,
+    kind: "STATE",
+    stateCardIds: [toStateCardId("NY")],
+    sellerId: toPlayerId("p1"),
+    currentBidderId: toPlayerId("p1"),
+    highestBid: 0,
     highestBidderId: null,
-    activeBidderIds: [toPlayerId("p1"), toPlayerId("p2")],
+    consecutivePasses: 0,
     ...overrides,
   };
 }

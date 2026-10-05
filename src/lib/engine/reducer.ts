@@ -4,8 +4,9 @@ import { getCurrentPhase, replacePhase } from "./phase";
 import type { GameState } from "./types";
 import type { GameAction } from "./actions";
 import { getPlayerVoteTotal } from "./selectors";
+import { BOARD_SIZE, MIN_OPENING_BID } from "./constants";
 
-const BOARD_SIZE = 40; // placeholder — confirm actual space count later
+
 
 export function rollDie(): number {
   return Math.floor(Math.random() * 6) + 1;
@@ -56,6 +57,11 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   }
 }
 
+// src/lib/engine/reducer.ts
+import { getNextPlayerId } from "./selectors";
+
+
+
 export function handlePlaceBid(
   state: GameState,
   action: Extract<GameAction, { type: "PLACE_BID" }>
@@ -64,28 +70,31 @@ export function handlePlaceBid(
     throw new Error("Cannot place bid outside of AUCTION phase");
   }
 
-  if (state.currentAuction === null) {
+  const auction = state.currentAuction;
+  if (auction === null) {
     throw new Error("No active auction to place a bid in");
   }
 
-  if (
-    state.currentAuction.activeBidderIds.includes(action.playerId) === false
-  ) {
-    throw new Error("Player is not an active bidder in this auction");
+  if (action.playerId !== auction.currentBidderId) {
+    throw new Error("It is not this player's turn to bid");
   }
 
-  if (action.bidAmount <= state.currentAuction.highestBid) {
+  const isOpeningBid = auction.highestBidderId === null;
+
+  if (isOpeningBid && action.bidAmount < MIN_OPENING_BID) {
+    throw new Error(`Opening bid must be at least ${MIN_OPENING_BID}`);
+  }
+
+  if (!isOpeningBid && action.bidAmount <= auction.highestBid) {
     throw new Error("Bid must exceed the current highest bid");
   }
 
-  if (action.bidAmount > getPlayerVoteTotal(state, action.playerId)) {
-    throw new Error("Bid amount exceeds player's available votes");
-  }
-
   const updatedAuction = {
-    ...state.currentAuction,
+    ...auction,
     highestBid: action.bidAmount,
     highestBidderId: action.playerId,
+    consecutivePasses: 0,
+    currentBidderId: getNextPlayerId(state, action.playerId),
   };
 
   return { ...state, currentAuction: updatedAuction };

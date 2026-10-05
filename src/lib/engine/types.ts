@@ -73,11 +73,18 @@ export type GameState = {
   currentAuction: AuctionState | null;
 };
 
+const MIN_OPENING_BID = 250_000; // 250,000 votes
+
+export type AuctionKind = "STATE" | "OPEN_BALLOT" | "SECRET_BALLOT";
+
 export type AuctionState = {
-  stateCardId: StateCardId;
-  highestBid: number;
+  kind: AuctionKind;
+  stateCardIds: StateCardId[]; // 1 card, or up to 4 for Secret Ballot
+  sellerId: PlayerId; // gets paid: the lander, or the former owner on Open Ballot
+  currentBidderId: PlayerId; // whose turn it is to bid or pass
+  highestBid: number; // 0 means nobody has bid yet
   highestBidderId: PlayerId | null;
-  activeBidderIds: PlayerId[];
+  consecutivePasses: number; // resets to 0 whenever someone bids
 };
 
 export type GamePhase =

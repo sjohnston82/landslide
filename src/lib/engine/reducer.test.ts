@@ -2,12 +2,11 @@
 import { describe, expect, it } from "vitest";
 
 import { applyAction, handleRollDie, handlePlaceBid } from "./reducer";
-import { toPlayerId, toVoteCardId, type GameState } from "./types";
+import { toPlayerId } from "./types";
 import {
   createTestState,
   createTestAuctionGameState,
   createTestAuctionState,
-  createTestPlayer,
 } from "./test-helpers";
 import { getCurrentPhase } from "./phase";
 
@@ -60,85 +59,117 @@ describe("wrong player error", () => {
 });
 
 // AUCTION TESTS
-
-function createAffordableBidState(
-  overrides: Partial<GameState> = {}
-): GameState {
-  return createTestAuctionGameState({
-    voteCardsById: {
-      [toVoteCardId("v1")]: { id: toVoteCardId("v1"), value: 200 },
-    },
-    players: [
-      createTestPlayer({
-        id: toPlayerId("p1"),
-        voteHand: [toVoteCardId("v1")],
-      }),
-      createTestPlayer({ id: toPlayerId("p2") }),
-    ],
-    ...overrides,
-  });
-}
+// Default fixture: STATE auction, p1 is both seller and current bidder,
+// nobody has bid yet (highestBid 0, highestBidderId null).
 
 describe("handlePlaceBid", () => {
-  it("updates the highest bid and highest bidder, leaving activeBidderIds untouched", () => {
-    const initialState = createAffordableBidState();
+  it("accepts an opening bid at the 250,000 minimum and passes the turn to the next bidder", () => {
+    const initialState = createTestAuctionGameState();
 
     const result = handlePlaceBid(initialState, {
       type: "PLACE_BID",
       playerId: toPlayerId("p1"),
-      bidAmount: 150,
+      bidAmount: 250_000,
     });
 
-    expect(result.currentAuction?.highestBid).toBe(150);
+    expect(result.currentAuction?.highestBid).toBe(250_000);
     expect(result.currentAuction?.highestBidderId).toBe(toPlayerId("p1"));
-    expect(result.currentAuction?.activeBidderIds).toEqual([
-      toPlayerId("p1"),
-      toPlayerId("p2"),
-    ]);
+    expect(result.currentAuction?.currentBidderId).toBe(toPlayerId("p2"));
+    expect(result.currentAuction?.consecutivePasses).toBe(0);
+  });
+
+  it("resets consecutivePasses when a bid raises the price", () => {
+    const initialState = createTestAuctionGameState({
+      currentAuction: createTestAuctionState({
+        highestBid: 250_000,
+        highestBidderId: toPlayerId("p2"),
+        currentBidderId: toPlayerId("p1"),
+        consecutivePasses: 1,
+      }),
+    });
+
+    const result = handlePlaceBid(initialState, {
+      type: "PLACE_BID",
+      playerId: toPlayerId("p1"),
+      bidAmount: 500_000,
+    });
+
+    expect(result.currentAuction?.consecutivePasses).toBe(0);
+    expect(result.currentAuction?.highestBid).toBe(500_000);
+    expect(result.currentAuction?.highestBidderId).toBe(toPlayerId("p1"));
+  });
+
+  it("allows bidding more than the player holds (overbidding is legal; the penalty comes at settlement)", () => {
+    // default players hold no vote cards at all
+    const initialState = createTestAuctionGameState();
+
+    const result = handlePlaceBid(initialState, {
+      type: "PLACE_BID",
+      playerId: toPlayerId("p1"),
+      bidAmount: 500_000,
+    });
+
+    expect(result.currentAuction?.highestBid).toBe(500_000);
   });
 
   it("does not modify the original state", () => {
-    const initialState = createAffordableBidState();
+    const initialState = createTestAuctionGameState();
 
     handlePlaceBid(initialState, {
       type: "PLACE_BID",
       playerId: toPlayerId("p1"),
-      bidAmount: 150,
+      bidAmount: 250_000,
     });
 
-    expect(initialState.currentAuction?.highestBid).toBe(100);
+    // asserted against independently written values, not against initialState itself
+    expect(initialState.currentAuction?.highestBid).toBe(0);
     expect(initialState.currentAuction?.highestBidderId).toBe(null);
+    expect(initialState.currentAuction?.currentBidderId).toBe(toPlayerId("p1"));
   });
 
   it("is routed correctly through applyAction", () => {
-    const initialState = createAffordableBidState();
+    const initialState = createTestAuctionGameState();
 
     const result = applyAction(initialState, {
       type: "PLACE_BID",
       playerId: toPlayerId("p1"),
-      bidAmount: 150,
+      bidAmount: 250_000,
     });
 
-    expect(result.currentAuction?.highestBid).toBe(150);
+    expect(result.currentAuction?.highestBid).toBe(250_000);
   });
 
-  it("throws if the bid exceeds the player's available votes", () => {
-    const initialState = createAffordableBidState();
+  it("throws if it is not the player's turn to bid", () => {
+    // currentBidderId defaults to p1, so p2 is acting out of turn
+    const initialState = createTestAuctionGameState();
+
+    expect(() =>
+      handlePlaceBid(initialState, {
+        type: "PLACE_BID",
+        playerId: toPlayerId("p2"),
+        bidAmount: 250_000,
+      })
+    ).toThrow("It is not this player's turn to bid");
+  });
+
+  it("throws if the opening bid is below the 250,000 minimum", () => {
+    const initialState = createTestAuctionGameState();
 
     expect(() =>
       handlePlaceBid(initialState, {
         type: "PLACE_BID",
         playerId: toPlayerId("p1"),
-        bidAmount: 250,
+        bidAmount: 100_000,
       })
-    ).toThrow("Bid amount exceeds player's available votes");
+    ).toThrow("Opening bid must be at least");
   });
 
-  it("throws if the bid does not exceed the current highest bid", () => {
-    const initialState = createAffordableBidState({
+  it("throws if the bid only matches the current highest bid", () => {
+    const initialState = createTestAuctionGameState({
       currentAuction: createTestAuctionState({
-        highestBid: 150,
+        highestBid: 300_000,
         highestBidderId: toPlayerId("p2"),
+        currentBidderId: toPlayerId("p1"),
       }),
     });
 
@@ -146,25 +177,9 @@ describe("handlePlaceBid", () => {
       handlePlaceBid(initialState, {
         type: "PLACE_BID",
         playerId: toPlayerId("p1"),
-        bidAmount: 100,
+        bidAmount: 300_000,
       })
     ).toThrow("Bid must exceed the current highest bid");
-  });
-
-  it("throws if the player is not an active bidder", () => {
-    const initialState = createAffordableBidState({
-      currentAuction: createTestAuctionState({
-        activeBidderIds: [toPlayerId("p2")],
-      }),
-    });
-
-    expect(() =>
-      handlePlaceBid(initialState, {
-        type: "PLACE_BID",
-        playerId: toPlayerId("p1"),
-        bidAmount: 150,
-      })
-    ).toThrow("Player is not an active bidder in this auction");
   });
 
   it("throws if the game is not in the AUCTION phase", () => {
@@ -176,7 +191,7 @@ describe("handlePlaceBid", () => {
       handlePlaceBid(initialState, {
         type: "PLACE_BID",
         playerId: toPlayerId("p1"),
-        bidAmount: 150,
+        bidAmount: 250_000,
       })
     ).toThrow("Cannot place bid outside of AUCTION phase");
   });
@@ -191,7 +206,7 @@ describe("handlePlaceBid", () => {
       handlePlaceBid(initialState, {
         type: "PLACE_BID",
         playerId: toPlayerId("p1"),
-        bidAmount: 150,
+        bidAmount: 250_000,
       })
     ).toThrow("No active auction to place a bid in");
   });

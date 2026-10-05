@@ -21,3 +21,17 @@ export function getPlayerVoteTotal(
 
   return voteTotal;
 }
+
+export function getNextPlayerId(
+  state: GameState,
+  currentPlayerId: PlayerId
+): PlayerId {
+  const currentIndex = state.players.findIndex((p) => p.id === currentPlayerId);
+
+  if (currentIndex === -1) {
+    throw new Error(`Player with ID ${currentPlayerId} not found`);
+  }
+
+  const nextIndex = (currentIndex + 1) % state.players.length;
+  return state.players[nextIndex].id;
+}
