@@ -1,12 +1,13 @@
-// action dispatches
-
+// src/lib/engine/reducer.ts
 import { getCurrentPhase, replacePhase } from "./phase";
+import { getNextPlayerId } from "./selectors";
+import { BOARD_SIZE, MIN_OPENING_BID } from "./constants";
 import type { GameState } from "./types";
 import type { GameAction } from "./actions";
-import { getPlayerVoteTotal } from "./selectors";
-import { BOARD_SIZE, MIN_OPENING_BID } from "./constants";
 
-
+// ---------------------------------------------------------------------------
+// ROLL_DIE
+// ---------------------------------------------------------------------------
 
 export function rollDie(): number {
   return Math.floor(Math.random() * 6) + 1;
@@ -46,21 +47,11 @@ export function handleRollDie(
   return replacePhase({ ...state, players: updatedPlayers }, "RESOLVING_SPACE");
 }
 
-export function applyAction(state: GameState, action: GameAction): GameState {
-  switch (action.type) {
-    case "ROLL_DIE":
-      return handleRollDie(state, action);
-    case "PLACE_BID":
-      return handlePlaceBid(state, action);
-    default:
-      throw new Error(`Unhandled action type: ${action.type}`);
-  }
-}
-
-// src/lib/engine/reducer.ts
-import { getNextPlayerId } from "./selectors";
-
-
+// ---------------------------------------------------------------------------
+// PLACE_BID
+// Turn-based per the official rules: bidding goes clockwise, a pass is not
+// elimination, overbidding is legal (the penalty comes at settlement).
+// ---------------------------------------------------------------------------
 
 export function handlePlaceBid(
   state: GameState,
@@ -98,4 +89,71 @@ export function handlePlaceBid(
   };
 
   return { ...state, currentAuction: updatedAuction };
+}
+
+// ---------------------------------------------------------------------------
+// PASS_AUCTION  (SKELETON: guards and turn handoff done, ending logic is yours)
+// ---------------------------------------------------------------------------
+
+export function handlePassAuction(
+  state: GameState,
+  action: Extract<GameAction, { type: "PASS_AUCTION" }>
+): GameState {
+  if (getCurrentPhase(state) !== "AUCTION") {
+    throw new Error("Cannot pass: game is not in the AUCTION phase");
+  }
+
+  const auction = state.currentAuction;
+  if (auction === null) {
+    throw new Error("Cannot pass: there is no active auction");
+  }
+
+  if (action.playerId !== auction.currentBidderId) {
+    throw new Error("Cannot pass: it is not this player's turn to bid");
+  }
+
+  const updatedAuction = {
+    ...auction,
+    consecutivePasses: auction.consecutivePasses + 1,
+  };
+
+  const hasBid = updatedAuction.highestBidderId !== null;
+  const passesNeeded = hasBid ? state.players.length - 1 : state.players.length;
+
+  if (updatedAuction.consecutivePasses < passesNeeded) {
+    return {
+      ...state,
+      currentAuction: {
+        ...updatedAuction,
+        currentBidderId: getNextPlayerId(state, auction.currentBidderId),
+      },
+    };
+  }
+
+  if (!hasBid) {
+    // TODO: return the state card(s) to the regional deck once decks are modeled
+    return replacePhase({ ...state, currentAuction: null }, "TURN_END");
+  }
+
+  return replacePhase(
+    { ...state, currentAuction: updatedAuction },
+    "AUCTION_SETTLEMENT"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dispatcher
+// ---------------------------------------------------------------------------
+
+export function applyAction(state: GameState, action: GameAction): GameState {
+  switch (action.type) {
+    case "ROLL_DIE":
+      return handleRollDie(state, action);
+    case "PLACE_BID":
+      return handlePlaceBid(state, action);
+    case "PASS_AUCTION":
+      return handlePassAuction(state, action);
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
 }

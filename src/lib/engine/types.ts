@@ -96,4 +96,5 @@ export type GamePhase =
   | "AUCTION"
   | "GAME_OVER"
   | "POLITICS_ACTION"
-  | "TURN_END";
+  | "TURN_END"
+  | "AUCTION_SETTLEMENT";
