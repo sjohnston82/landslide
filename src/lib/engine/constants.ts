@@ -1,2 +1,3 @@
 export const BOARD_SIZE = 40;
 export const MIN_OPENING_BID = 250_000;
+export const POPULAR_VOTES_PER_ELECTORAL_VOTE = 100_000;
