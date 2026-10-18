@@ -38,6 +38,7 @@ export type StateCard = {
   id: StateCardId;
   name: string;
   electoralVotes: number;
+  region: Region;
 };
 
 export type PoliticsEffect =
@@ -57,6 +58,7 @@ export type GameState = {
   players: Player[];
 
   stateCardsById: Record<StateCardId, StateCard>;
+  stateDecks: Record<Region, StateCardId[]>;
 
   voteCardsById: Record<VoteCardId, VoteCard>;
   voteDeck: VoteCardId[];

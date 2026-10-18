@@ -1,5 +1,5 @@
 // src/lib/engine/test-helpers.ts
-import type { AuctionState, GameState, Player } from "./types";
+import type { AuctionState, GameState, Player, StateCard } from "./types";
 import { toPlayerId, toStateCardId } from "./types";
 
 export function createTestPlayer(overrides: Partial<Player> = {}): Player {
@@ -26,6 +26,7 @@ export function createTestState(overrides: Partial<GameState> = {}): GameState {
   return {
     players: [player1, player2],
     stateCardsById: {},
+    stateDecks: { MIDWEST: [], WEST: [], SOUTH: [], EAST: [] },
     voteCardsById: {},
     voteDeck: [],
     voteDiscard: [],
@@ -64,4 +65,16 @@ export function createTestAuctionGameState(
     currentAuction: createTestAuctionState(),
     ...overrides,
   });
+}
+
+export function createTestStateCard(
+  overrides: Partial<StateCard> = {}
+): StateCard {
+  return {
+    id: toStateCardId("s1"),
+    name: "Test State",
+    electoralVotes: 4,
+    region: "EAST",
+    ...overrides,
+  };
 }
