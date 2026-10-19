@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getPlayerSpendingPower } from "./selectors";
-import { createTestPlayer, createTestState } from "./test-helpers";
+import {
+  createTestPlayer,
+  createTestState,
+  createTestStateCard,
+} from "./test-helpers";
 import { toPlayerId, toStateCardId, toVoteCardId } from "./types";
 
 describe("getPlayerSpendingPower", () => {
@@ -38,7 +42,7 @@ describe("getPlayerSpendingPower", () => {
         }),
       ],
       stateCardsById: {
-        [s1]: { id: s1, name: "Test State", electoralVotes: 4 },
+        [s1]: createTestStateCard({ id: s1, electoralVotes: 4 }),
       },
     });
 
@@ -54,8 +58,16 @@ describe("getPlayerSpendingPower", () => {
         createTestPlayer({ id: toPlayerId("p1"), wonStates: [s1, s2] }),
       ],
       stateCardsById: {
-        [s1]: { id: s1, name: "State One", electoralVotes: 4 },
-        [s2]: { id: s2, name: "State Two", electoralVotes: 3 },
+        [s1]: createTestStateCard({
+          id: s1,
+          name: "State One",
+          electoralVotes: 4,
+        }),
+        [s2]: createTestStateCard({
+          id: s2,
+          name: "State Two",
+          electoralVotes: 3,
+        }),
       },
     });
 
@@ -74,7 +86,11 @@ describe("getPlayerSpendingPower", () => {
         }),
       ],
       stateCardsById: {
-        [home]: { id: home, name: "Home State", electoralVotes: 4 },
+        [home]: createTestStateCard({
+          id: home,
+          name: "Home State",
+          electoralVotes: 4,
+        }),
       },
     });
 
